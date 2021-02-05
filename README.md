@@ -56,6 +56,9 @@ Manage Articles
 - I'll also need to create each of these instances within the main.go as part of startup of the server.
 - For article creation I've come up with a simple in-memory counter to provide a "unique" id for each article.
 
+## Notice
+    At this point I realized documenting as I work was slowing me down and since I only had 2 hours left to complete the service I decided to get significant progress done and document afterwards.
+
 
 
 

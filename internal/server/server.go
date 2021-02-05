@@ -52,19 +52,19 @@ func (s *Server) GetArticlesByIDs(ids []int) ([]models.Article, error) {
 	)
 
 	var wg sync.WaitGroup
-	for i := range ids {
+	for _, v := range ids {
 		wg.Add(1)
-		go func(i int) {
+		go func(v int) {
 			defer wg.Done()
 			mu.Lock()
-			art, err := s.GetArticleByID(i)
+			art, err := s.GetArticleByID(v)
 			if err != nil {
 				//There needs to be error handling for this situation during the mutex lock
-				log.ErrorLog(fmt.Sprintf("Error while requesting article from db with id:%v", i), err)
+				log.ErrorLog(fmt.Sprintf("Error while requesting article from db with id:%v", v), err)
 			}
 			arts = append(arts, art)
 			mu.Unlock()
-		}(i)
+		}(v)
 	}
 	wg.Wait()
 	return arts, nil

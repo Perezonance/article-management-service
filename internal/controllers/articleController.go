@@ -11,6 +11,7 @@ import (
 	"github.com/Perezonance/article-management-service/internal/server"
 	"github.com/Perezonance/article-management-service/internal/storage"
 	log "github.com/Perezonance/article-management-service/internal/util/logger"
+	"github.com/gorilla/mux"
 )
 
 //Controller handles and processes requests and responses to the server as well as input validation
@@ -26,13 +27,33 @@ func NewController(s *server.Server) *Controller {
 //GetArticlesHandler processes request and calls server to fetch all articles
 //GET /articles
 func (c *Controller) GetArticlesHandler(w http.ResponseWriter, r *http.Request) {
-	log.InfoLog("Request recieved: returning all articles.")
+	var (
+		ids    = strings.Split(r.URL.Query().Get("ids"), ",")
+		arts   []models.Article
+		intIDs = make([]int, len(ids))
+	)
 
-	arts, err := c.s.GetArticles()
-	if err != nil {
-		log.ErrorLog("Error while retrieving articles", err)
-		writeRes(http.StatusInternalServerError, http.StatusText(http.StatusInternalServerError), w)
-		return
+	if len(ids) == 0 {
+		log.InfoLog("Request recieved: returning all articles.")
+		a, err := c.s.GetArticles()
+		if err != nil {
+			log.ErrorLog("Error while retrieving articles", err)
+			writeRes(http.StatusInternalServerError, http.StatusText(http.StatusInternalServerError), w)
+			return
+		}
+		arts = a
+	} else {
+		log.InfoLog(fmt.Sprintf("Request recieved: returning articles for ids:%v", intIDs))
+		for i, s := range ids {
+			intIDs[i], _ = strconv.Atoi(s)
+		}
+		a, err := c.s.GetArticlesByIDs(intIDs)
+		if err != nil {
+			log.ErrorLog("Error while retrieving articles", err)
+			writeRes(http.StatusInternalServerError, http.StatusText(http.StatusInternalServerError), w)
+			return
+		}
+		arts = a
 	}
 
 	res, err := json.Marshal(arts)
@@ -69,10 +90,41 @@ func (c *Controller) PostArticleHandler(w http.ResponseWriter, r *http.Request) 
 	writeRes(http.StatusCreated, fmt.Sprintf("%v", aID), w)
 }
 
+//GetMultArticleByIDHandler processes request and makes server call to fetch an article with given artID
+//GET /articles/{articleID}
+func (c *Controller) GetMultArticleByIDHandler(w http.ResponseWriter, r *http.Request) {
+	ids := r.URL.Query().Get("ids")
+
+	log.InfoLog(ids)
+
+	//log.InfoLog(fmt.Sprintf("Request received: retrieving article with id%v", artID))
+
+	// art, err := c.s.GetArticleByID(artID)
+	// if err != nil {
+	// 	if err == storage.ErrResourceNotFound {
+	// 		log.ErrorLog(fmt.Sprintf("Error while retrieving article with id:%v", artID), err)
+	// 		writeRes(http.StatusNotFound, http.StatusText(http.StatusNotFound), w)
+	// 		return
+	// 	}
+	// 	log.ErrorLog(fmt.Sprintf("Error while retrieving article with id:%v", artID), err)
+	// 	writeRes(http.StatusInternalServerError, http.StatusText(http.StatusInternalServerError), w)
+	// 	return
+	// }
+
+	// res, err := json.Marshal(art)
+	// if err != nil {
+	// 	log.ErrorLog("Error while marshaling response", err)
+	// 	writeRes(http.StatusInternalServerError, http.StatusText(http.StatusInternalServerError), w)
+	// 	return
+	// }
+	// writeRes(http.StatusOK, string(res), w)
+}
+
 //GetArticleByIDHandler processes request and makes server call to fetch an article with given artID
 //GET /articles/{articleID}
 func (c *Controller) GetArticleByIDHandler(w http.ResponseWriter, r *http.Request) {
-	artID, err := strconv.Atoi(strings.TrimPrefix(r.URL.Path, "/articles/"))
+	params := mux.Vars(r)
+	artID, err := strconv.Atoi(params["articleID"])
 	if err != nil {
 		log.ErrorLog("Error while parsing path URL", err)
 		writeRes(http.StatusInternalServerError, http.StatusText(http.StatusInternalServerError), w)
@@ -105,7 +157,8 @@ func (c *Controller) GetArticleByIDHandler(w http.ResponseWriter, r *http.Reques
 //UpdateArticleByIDHandler processes request and makes server call to update an article with given artID
 //PUT /articles/{articleID}
 func (c *Controller) UpdateArticleByIDHandler(w http.ResponseWriter, r *http.Request) {
-	artID, err := strconv.Atoi(strings.TrimPrefix(r.URL.Path, "/articles/"))
+	params := mux.Vars(r)
+	artID, err := strconv.Atoi(params["articleID"])
 	if err != nil {
 		log.ErrorLog("Error while parsing path URL", err)
 		writeRes(http.StatusInternalServerError, http.StatusText(http.StatusInternalServerError), w)
@@ -149,7 +202,8 @@ func (c *Controller) UpdateArticleByIDHandler(w http.ResponseWriter, r *http.Req
 //DeleteArticleByIDHandler processes request and makes server call to delete an article with given artID
 //DELETE /articles/{articleID}
 func (c *Controller) DeleteArticleByIDHandler(w http.ResponseWriter, r *http.Request) {
-	artID, err := strconv.Atoi(strings.TrimPrefix(r.URL.Path, "/articles/"))
+	params := mux.Vars(r)
+	artID, err := strconv.Atoi(params["articleID"])
 	if err != nil {
 		log.ErrorLog("Error while parsing path URL", err)
 		writeRes(http.StatusInternalServerError, http.StatusText(http.StatusInternalServerError), w)
@@ -171,7 +225,8 @@ func (c *Controller) DeleteArticleByIDHandler(w http.ResponseWriter, r *http.Req
 //with given userID
 //GET /articles/{userID}
 func (c *Controller) GetArticleByUserIDHandler(w http.ResponseWriter, r *http.Request) {
-	userID, err := strconv.Atoi(strings.TrimPrefix(r.URL.Path, "/articles/id:"))
+	params := mux.Vars(r)
+	userID, err := strconv.Atoi(params["userID"])
 	if err != nil {
 		log.ErrorLog("Error while parsing path URL", err)
 		writeRes(http.StatusInternalServerError, http.StatusText(http.StatusInternalServerError), w)
