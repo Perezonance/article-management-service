@@ -58,7 +58,6 @@ func (mdb *MockDynamo) CreateArticle(art models.NewArticle) (int, error) {
 	idCounter++
 	mdb.ArticlesTable[insertArt.ArticleID] = insertArt
 	return insertArt.ArticleID, nil
-
 }
 
 //UpdateArticle replaces an existing article with a new one

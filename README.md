@@ -54,6 +54,7 @@ Manage Articles
 - provide the Article data model within the internal/models package
 - while I'm defining the data model for an article, i've also included a model for a NewArticle which is the model we'll use for the request payload when providing an article for a creation operation. Reason for is because we want the server to handle articleID generation.
 - I'll also need to create each of these instances within the main.go as part of startup of the server.
+- For article creation I've come up with a simple in-memory counter to provide a "unique" id for each article.
 
 
 
