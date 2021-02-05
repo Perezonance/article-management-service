@@ -43,7 +43,12 @@ Manage Articles
 ## Notes
 - To begin I'll setup a github repo for an article management service
 - Now I need to setup the package/project layout for this project. For this I tend to ascribe to the go standards project layout: https://github.com/golang-standards/project-layout
-- 
+- Now that I've established some order, I'll write a simple "Hello, world." program to test everything
+- As I mentioned beforehand, I plan on using gorilla/mux for building this server for just the few convenience features so I'll start by setting up the router, defining the paths with handlers, and starting the server with ListenAndServe on http://localhost:8000
+- Now I know that I want to follow a structured design from the beginning with this project so I'm going to develop it based similarly to the MVC model. 
+- I've gone ahead and setup a package structure for the internal directory to reflect this design.
+- I've started with building out the controller struct which will define the layer responsible for processing the request and response, (input)authentication, and authorization
+    
 
 
 
