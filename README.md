@@ -48,7 +48,12 @@ Manage Articles
 - Now I know that I want to follow a structured design from the beginning with this project so I'm going to develop it based similarly to the MVC model. 
 - I've gone ahead and setup a package structure for the internal directory to reflect this design.
 - I've started with building out the controller struct which will define the layer responsible for processing the request and response, (input)authentication, and authorization
-    
+- While I start working on the controller as well as its methods I've gone ahead and used the subrouting feature from gorilla/mux to assign all the handlers to each path and method defined by the API
+- Before continuing with work on the controller methods I need to define the server and its functions as well. This is of course housed in the internal/server pkg
+- Defined the Storage interface behavior and will implement the signatures on a MockDynamo struct that will mimic a key-value store, in-memory.
+- provide the Article data model within the internal/models package
+- while I'm defining the data model for an article, i've also included a model for a NewArticle which is the model we'll use for the request payload when providing an article for a creation operation. Reason for is because we want the server to handle articleID generation.
+- I'll also need to create each of these instances within the main.go as part of startup of the server.
 
 
 
