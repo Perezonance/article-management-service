@@ -43,6 +43,7 @@ func (c *Controller) GetArticlesHandler(w http.ResponseWriter, r *http.Request) 
 			writeRes(http.StatusInternalServerError, http.StatusText(http.StatusInternalServerError), w)
 			return
 		}
+		log.DebugLog(fmt.Sprintf("Request processing: retrieved all articles"))
 		arts = a
 	} else {
 		log.InfoLog(fmt.Sprintf("Request recieved: returning articles for ids:%v", intIDs))
