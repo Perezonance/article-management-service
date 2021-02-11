@@ -47,26 +47,37 @@ func (s *Server) GetArticleByID(id int) (models.Article, error) {
 //GET /articles?ids=id1,id2,id3,idn...
 func (s *Server) GetArticlesByIDs(ids []int) ([]models.Article, error) {
 	var (
-		mu   = &sync.Mutex{}
-		arts = make([]models.Article, 0)
+		mu    = &sync.Mutex{}
+		arts  = make([]models.Article, len(ids))
+		echan = make(chan error)
 	)
 
 	var wg sync.WaitGroup
-	for _, v := range ids {
+	for i, v := range ids {
 		wg.Add(1)
-		go func(v int) {
+		go func(i int, v int) {
 			defer wg.Done()
 			mu.Lock()
 			art, err := s.GetArticleByID(v)
+			mu.Unlock()
 			if err != nil {
 				//There needs to be error handling for this situation during the mutex lock
 				log.ErrorLog(fmt.Sprintf("Error while requesting article from db with id:%v", v), err)
+				echan <- err
 			}
 			arts = append(arts, art)
-			mu.Unlock()
-		}(v)
+		}(i, v)
 	}
 	wg.Wait()
+
+	//Check Error channel for any errors
+	err := <-echan
+	if err != nil {
+		//return error up
+		blank := make([]models.Article, 0)
+		return blank, err
+	}
+
 	return arts, nil
 }
 

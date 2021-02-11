@@ -26,6 +26,7 @@ func NewController(s *server.Server) *Controller {
 
 //GetArticlesHandler processes request and calls server to fetch all articles
 //GET /articles
+//GET /articles?ids=1,3,127, 13048203
 func (c *Controller) GetArticlesHandler(w http.ResponseWriter, r *http.Request) {
 	var (
 		ids    = strings.Split(r.URL.Query().Get("ids"), ",")
@@ -33,7 +34,8 @@ func (c *Controller) GetArticlesHandler(w http.ResponseWriter, r *http.Request) 
 		intIDs = make([]int, len(ids))
 	)
 
-	if len(ids) == 0 {
+	log.DebugLog(fmt.Sprintf("Number of Ids requested:%v", len(ids)))
+	if len(ids) > 1 {
 		log.InfoLog("Request recieved: returning all articles.")
 		a, err := c.s.GetArticles()
 		if err != nil {
