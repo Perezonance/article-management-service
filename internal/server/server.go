@@ -92,6 +92,43 @@ func (s *Server) CreateArticle(a models.NewArticle) (int, error) {
 	return id, nil
 }
 
+//CreateArticles creates a new article given the article data model and returns the newly issued ID
+//POST /articles
+func (s *Server) CreateArticles(arts []models.NewArticle) ([]int, error) {
+	var (
+		mu     = &sync.Mutex{}
+		artIDs []int
+		echan  = make(chan error)
+	)
+
+	var wg sync.WaitGroup
+	for i, v := range arts {
+		wg.Add(1)
+		go func(i int, v models.NewArticle) {
+			defer wg.Done()
+			mu.Lock()
+			id, err := s.CreateArticle(arts[i])
+			mu.Unlock()
+			if err != nil {
+				log.ErrorLog(fmt.Sprintf("Error while requesting article from db with id:%v", v), err)
+				echan <- err
+			}
+			artIDs = append(artIDs, id)
+		}(i, v)
+	}
+	wg.Wait()
+
+	//Check Error channel for any errors
+	err := <-echan
+	if err != nil {
+		//return error up
+		blank := make([]int, 0)
+		return blank, err
+	}
+
+	return artIDs, nil
+}
+
 //UpdateArticle updates an existing article with the given data model and id
 //PUT /articles/{articleId}
 func (s *Server) UpdateArticle(a models.Article) error {

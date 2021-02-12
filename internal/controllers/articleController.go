@@ -71,9 +71,10 @@ func (c *Controller) GetArticlesHandler(w http.ResponseWriter, r *http.Request) 
 //PostArticleHandler processes request and calls server to create a new article
 //POST /articles
 func (c *Controller) PostArticleHandler(w http.ResponseWriter, r *http.Request) {
-	var a models.NewArticle
 
-	log.InfoLog("Request recieved: creating new article.")
+	a := make([]models.NewArticle, 10)
+
+	log.InfoLog("Request recieved: creating new article(s).")
 
 	err := json.NewDecoder(r.Body).Decode(&a)
 	if err != nil {
@@ -83,14 +84,38 @@ func (c *Controller) PostArticleHandler(w http.ResponseWriter, r *http.Request) 
 	}
 	log.InfoLog(fmt.Sprintf("decoded request payload:\n%v", a))
 
-	aID, err := c.s.CreateArticle(a)
-	if err != nil {
-		log.ErrorLog(fmt.Sprintf("Error while creating new article: payload\n%v\n", a), err)
-		writeRes(http.StatusInternalServerError, http.StatusText(http.StatusInternalServerError), w)
-		return
+	if len(a) > 1 {
+		aIDs, err := c.s.CreateArticles(a)
+		if err != nil {
+			log.ErrorLog(fmt.Sprintf("Error while creating new article: payload\n%v\n", a), err)
+			writeRes(http.StatusInternalServerError, http.StatusText(http.StatusInternalServerError), w)
+			return
+		}
+
+		res, err := json.Marshal(aIDs)
+		if err != nil {
+			log.ErrorLog("Error while marshaling response", err)
+			writeRes(http.StatusInternalServerError, http.StatusText(http.StatusInternalServerError), w)
+			return
+		}
+		writeRes(http.StatusAccepted, string(res), w)
+	} else {
+		aID, err := c.s.CreateArticle(a[0])
+		if err != nil {
+			log.ErrorLog(fmt.Sprintf("Error while creating new article: payload\n%v\n", a), err)
+			writeRes(http.StatusInternalServerError, http.StatusText(http.StatusInternalServerError), w)
+			return
+		}
+
+		res, err := json.Marshal(aID)
+		if err != nil {
+			log.ErrorLog("Error while marshaling response", err)
+			writeRes(http.StatusInternalServerError, http.StatusText(http.StatusInternalServerError), w)
+			return
+		}
+		writeRes(http.StatusAccepted, string(res), w)
 	}
-	//TODO: return resource location
-	writeRes(http.StatusCreated, fmt.Sprintf("%v", aID), w)
+	return
 }
 
 //GetMultArticleByIDHandler processes request and makes server call to fetch an article with given artID

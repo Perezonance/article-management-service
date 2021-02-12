@@ -17,7 +17,7 @@ const (
 //InfoLog provides a info level structured log
 func InfoLog(msg string) {
 	currTime := time.Now().Format(timeFormat)
-	fmt.Printf(colorCyan+"%v::INFO LOG  >> "+colorReset+msg+"\n", currTime)
+	fmt.Printf(colorCyan+"%v::INFO  LOG >> "+colorReset+msg+"\n", currTime)
 }
 
 //ErrorLog provides an error level structured log
