@@ -35,28 +35,58 @@ func (c *Controller) GetArticlesHandler(w http.ResponseWriter, r *http.Request) 
 	)
 
 	log.DebugLog(fmt.Sprintf("Number of Ids requested:%v", len(ids)))
-	if len(ids) > 1 {
+
+	for i, s := range ids {
+		intIDs[i], _ = strconv.Atoi(s)
+	}
+
+	if len(ids) == 1 && intIDs[0] == 0 {
 		log.InfoLog("Request recieved: returning all articles.")
 		a, err := c.s.GetArticles()
 		if err != nil {
+			if err == storage.ErrResourceNotFound {
+				log.ErrorLog("Article not found 404 Response", err)
+				writeRes(http.StatusNotFound, http.StatusText(http.StatusNotFound), w)
+				return
+			}
 			log.ErrorLog("Error while retrieving articles", err)
 			writeRes(http.StatusInternalServerError, http.StatusText(http.StatusInternalServerError), w)
 			return
 		}
 		log.DebugLog(fmt.Sprintf("Request processing: retrieved all articles"))
 		arts = a
-	} else {
+	} else if len(ids) > 1 {
 		log.InfoLog(fmt.Sprintf("Request recieved: returning articles for ids:%v", intIDs))
-		for i, s := range ids {
-			intIDs[i], _ = strconv.Atoi(s)
-		}
+
 		a, err := c.s.GetArticlesByIDs(intIDs)
 		if err != nil {
+			if err == storage.ErrResourceNotFound {
+				log.ErrorLog("Article not found 404 Response", err)
+				writeRes(http.StatusNotFound, http.StatusText(http.StatusNotFound), w)
+				return
+			}
 			log.ErrorLog("Error while retrieving articles", err)
 			writeRes(http.StatusInternalServerError, http.StatusText(http.StatusInternalServerError), w)
 			return
 		}
+		log.InfoLog(fmt.Sprintf("Request processing: retrieved articles for ids:%v", intIDs))
 		arts = a
+	} else {
+		log.InfoLog(fmt.Sprintf("Request recieved: returning articles for ids:%v", intIDs))
+		a, err := c.s.GetArticleByID(intIDs[0])
+		if err != nil {
+			if err == storage.ErrResourceNotFound {
+				log.ErrorLog("Article not found 404 Response", err)
+				writeRes(http.StatusNotFound, http.StatusText(http.StatusNotFound), w)
+				return
+			}
+			log.ErrorLog("Error while retrieving articles", err)
+			writeRes(http.StatusInternalServerError, http.StatusText(http.StatusInternalServerError), w)
+			return
+
+		}
+		log.InfoLog(fmt.Sprintf("Request processing: retrieved all articles:"))
+		arts[0] = a
 	}
 
 	res, err := json.Marshal(arts)
@@ -66,6 +96,7 @@ func (c *Controller) GetArticlesHandler(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 	writeRes(http.StatusOK, string(res), w)
+	return
 }
 
 //PostArticleHandler processes request and calls server to create a new article
@@ -85,6 +116,7 @@ func (c *Controller) PostArticleHandler(w http.ResponseWriter, r *http.Request) 
 	log.InfoLog(fmt.Sprintf("decoded request payload:\n%v", a))
 
 	if len(a) > 1 {
+		log.DebugLog("multiple articles input...")
 		aIDs, err := c.s.CreateArticles(a)
 		if err != nil {
 			log.ErrorLog(fmt.Sprintf("Error while creating new article: payload\n%v\n", a), err)
@@ -92,14 +124,21 @@ func (c *Controller) PostArticleHandler(w http.ResponseWriter, r *http.Request) 
 			return
 		}
 
+		log.DebugLog("marshalling response")
+
 		res, err := json.Marshal(aIDs)
 		if err != nil {
 			log.ErrorLog("Error while marshaling response", err)
 			writeRes(http.StatusInternalServerError, http.StatusText(http.StatusInternalServerError), w)
 			return
 		}
+
+		log.DebugLog("returning response")
+
 		writeRes(http.StatusAccepted, string(res), w)
 	} else {
+		log.DebugLog("single article input...")
+
 		aID, err := c.s.CreateArticle(a[0])
 		if err != nil {
 			log.ErrorLog(fmt.Sprintf("Error while creating new article: payload\n%v\n", a), err)
@@ -107,12 +146,17 @@ func (c *Controller) PostArticleHandler(w http.ResponseWriter, r *http.Request) 
 			return
 		}
 
+		log.DebugLog("marshalling response")
+
 		res, err := json.Marshal(aID)
 		if err != nil {
 			log.ErrorLog("Error while marshaling response", err)
 			writeRes(http.StatusInternalServerError, http.StatusText(http.StatusInternalServerError), w)
 			return
 		}
+
+		log.DebugLog("returning response")
+
 		writeRes(http.StatusAccepted, string(res), w)
 	}
 	return
@@ -180,6 +224,7 @@ func (c *Controller) GetArticleByIDHandler(w http.ResponseWriter, r *http.Reques
 		return
 	}
 	writeRes(http.StatusOK, string(res), w)
+	return
 }
 
 //UpdateArticleByIDHandler processes request and makes server call to update an article with given artID

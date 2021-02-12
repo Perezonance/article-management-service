@@ -42,7 +42,7 @@ func main() {
 	l.InfoLog("Server Initialized")
 	//Graceful shut down procedure...
 	srv := &http.Server{
-		Addr:    "0.0.0.0:8080",
+		Addr:    "0.0.0.0:8081",
 		Handler: r,
 	}
 	go func() {

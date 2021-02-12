@@ -2,7 +2,6 @@ package server
 
 import (
 	"fmt"
-	"sync"
 
 	"github.com/Perezonance/article-management-service/internal/models"
 	"github.com/Perezonance/article-management-service/internal/storage"
@@ -46,39 +45,95 @@ func (s *Server) GetArticleByID(id int) (models.Article, error) {
 //GetArticlesByIDs returns all articles requested given a slice of ids
 //GET /articles?ids=id1,id2,id3,idn...
 func (s *Server) GetArticlesByIDs(ids []int) ([]models.Article, error) {
-	var (
-		mu    = &sync.Mutex{}
-		arts  = make([]models.Article, len(ids))
-		echan = make(chan error)
-	)
+	arts := make([]models.Article, len(ids))
+	quit := make(chan bool)
+	errc := make(chan error)
+	done := make(chan error)
 
-	var wg sync.WaitGroup
 	for i, v := range ids {
-		wg.Add(1)
 		go func(i int, v int) {
-			defer wg.Done()
-			mu.Lock()
 			art, err := s.GetArticleByID(v)
-			mu.Unlock()
+			ch := done
+			arts[i] = art
+
 			if err != nil {
-				//There needs to be error handling for this situation during the mutex lock
-				log.ErrorLog(fmt.Sprintf("Error while requesting article from db with id:%v", v), err)
-				echan <- err
+				log.ErrorLog(fmt.Sprintf("Thread %v returned error", i), err)
+				ch = errc
 			}
-			arts = append(arts, art)
+			select {
+			case ch <- err:
+				return
+			case <-quit:
+				return
+			}
 		}(i, v)
 	}
-	wg.Wait()
+	count := 0
+	blank := make([]models.Article, 0)
 
-	//Check Error channel for any errors
-	err := <-echan
-	if err != nil {
-		//return error up
-		blank := make([]models.Article, 0)
-		return blank, err
+	for {
+		select {
+		case err := <-errc:
+			close(quit)
+			return blank, err
+		case <-done:
+			count++
+			if count == len(arts) {
+				if len(arts) != len(ids) {
+					return blank, fmt.Errorf("uneven ids input to articles output")
+				}
+				return arts, nil
+			}
+		}
 	}
 
-	return arts, nil
+	// var (
+	// 	mu    = &sync.Mutex{}
+	// 	arts  = make([]models.Article, len(ids))
+	// 	echan = make(chan error)
+	// )
+
+	// log.DebugLog(fmt.Sprintf("Number of ids:%v", len(ids)))
+
+	// var wg sync.WaitGroup
+	// for i, v := range ids {
+	// 	log.DebugLog(fmt.Sprintf("Thread %v created", i))
+	// 	wg.Add(1)
+	// 	go func(i int, v int) {
+	// 		defer log.DebugLog(fmt.Sprintf("Thread %v completed", i))
+	// 		defer wg.Done()
+	// 		mu.Lock()
+	// 		art, err := s.GetArticleByID(v)
+	// 		mu.Unlock()
+	// 		if err != nil {
+	// 			log.ErrorLog(fmt.Sprintf("Error while thread %v was requesting article from db with id:%v", i, v), err)
+	// 		}
+	// 		echan <- err
+	// 		arts = append(arts, art)
+	// 	}(i, v)
+	// }
+
+	// log.DebugLog("fetched all ids, processing error channel")
+	// select {
+	// case err <- echan:
+	// 	log.ErrorLog("error recieved through channel", err)
+	// default:
+	// 	log.DebugLog("error not parsed through error channel")
+	// }
+	// for i := 0; i < len(arts); i++ {
+	// 	err := <-echan
+	// 	if err != nil {
+	// 		log.DebugLog("Non nil value recieved through error channel")
+	// 		blank := make([]models.Article, 0)
+	// 		return blank, err
+	// 	}
+	// }
+	// log.DebugLog("fetched all ids, error channel processed")
+
+	// wg.Wait()
+	// log.DebugLog(fmt.Sprintf("returning fetched articles:\n%v", arts))
+
+	// return arts, nil
 }
 
 //CreateArticle creates a new article given the article data model and returns the newly issued ID
@@ -95,38 +150,88 @@ func (s *Server) CreateArticle(a models.NewArticle) (int, error) {
 //CreateArticles creates a new article given the article data model and returns the newly issued ID
 //POST /articles
 func (s *Server) CreateArticles(arts []models.NewArticle) ([]int, error) {
-	var (
-		mu     = &sync.Mutex{}
-		artIDs []int
-		echan  = make(chan error)
-	)
+	ids := make([]int, len(arts))
+	quit := make(chan bool)
+	errc := make(chan error)
+	done := make(chan error)
 
-	var wg sync.WaitGroup
 	for i, v := range arts {
-		wg.Add(1)
 		go func(i int, v models.NewArticle) {
-			defer wg.Done()
-			mu.Lock()
-			id, err := s.CreateArticle(arts[i])
-			mu.Unlock()
+			id, err := s.CreateArticle(v)
+			ch := done
+			ids[i] = id
+
 			if err != nil {
-				log.ErrorLog(fmt.Sprintf("Error while requesting article from db with id:%v", v), err)
-				echan <- err
+				log.ErrorLog(fmt.Sprintf("Thread %v returned error", i), err)
+				ch = errc
 			}
-			artIDs = append(artIDs, id)
+			select {
+			case ch <- err:
+				return
+			case <-quit:
+				return
+			}
 		}(i, v)
 	}
-	wg.Wait()
+	count := 0
+	blank := make([]int, 0)
 
-	//Check Error channel for any errors
-	err := <-echan
-	if err != nil {
-		//return error up
-		blank := make([]int, 0)
-		return blank, err
+	for {
+		select {
+		case err := <-errc:
+			close(quit)
+			return blank, err
+		case <-done:
+			count++
+			if count == len(arts) {
+				if len(arts) != len(ids) {
+					return blank, fmt.Errorf("uneven newArticle input to article ids output")
+				}
+				return ids, nil
+			}
+		}
 	}
 
-	return artIDs, nil
+	// var (
+	// 	mu     = &sync.Mutex{}
+	// 	artIDs []int
+	// 	echan  = make(chan error, len(arts))
+	// )
+
+	// log.DebugLog("creating multiple articles")
+
+	// var wg sync.WaitGroup
+	// for i, v := range arts {
+	// 	wg.Add(1)
+	// 	go func(i int, v models.NewArticle) {
+	// 		log.DebugLog(fmt.Sprintf("Thread %v created..", i))
+	// 		defer wg.Done()
+	// 		mu.Lock()
+	// 		id, err := s.CreateArticle(arts[i])
+	// 		mu.Unlock()
+	// 		if err != nil {
+	// 			log.ErrorLog(fmt.Sprintf("Error while creating new article:\n%v", v), err)
+	// 		}
+	// 		echan <- err
+	// 		artIDs = append(artIDs, id)
+	// 	}(i, v)
+	// }
+	// //Check Error channel for any errors
+	// for i := 0; i < len(arts); i++ {
+	// 	err := <-echan
+	// 	if err != nil {
+	// 		log.DebugLog("Non nil value recieved through error channel")
+	// 		blank := make([]int, 0)
+	// 		return blank, err
+	// 	}
+	// }
+	// wg.Wait()
+
+	// log.DebugLog("articles created, processing error channel")
+
+	// log.DebugLog("returning generated article IDs")
+
+	// return artIDs, nil
 }
 
 //UpdateArticle updates an existing article with the given data model and id
