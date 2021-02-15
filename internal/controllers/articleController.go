@@ -162,36 +162,6 @@ func (c *Controller) PostArticleHandler(w http.ResponseWriter, r *http.Request) 
 	return
 }
 
-//GetMultArticleByIDHandler processes request and makes server call to fetch an article with given artID
-//GET /articles/{articleID}
-func (c *Controller) GetMultArticleByIDHandler(w http.ResponseWriter, r *http.Request) {
-	ids := r.URL.Query().Get("ids")
-
-	log.InfoLog(ids)
-
-	//log.InfoLog(fmt.Sprintf("Request received: retrieving article with id%v", artID))
-
-	// art, err := c.s.GetArticleByID(artID)
-	// if err != nil {
-	// 	if err == storage.ErrResourceNotFound {
-	// 		log.ErrorLog(fmt.Sprintf("Error while retrieving article with id:%v", artID), err)
-	// 		writeRes(http.StatusNotFound, http.StatusText(http.StatusNotFound), w)
-	// 		return
-	// 	}
-	// 	log.ErrorLog(fmt.Sprintf("Error while retrieving article with id:%v", artID), err)
-	// 	writeRes(http.StatusInternalServerError, http.StatusText(http.StatusInternalServerError), w)
-	// 	return
-	// }
-
-	// res, err := json.Marshal(art)
-	// if err != nil {
-	// 	log.ErrorLog("Error while marshaling response", err)
-	// 	writeRes(http.StatusInternalServerError, http.StatusText(http.StatusInternalServerError), w)
-	// 	return
-	// }
-	// writeRes(http.StatusOK, string(res), w)
-}
-
 //GetArticleByIDHandler processes request and makes server call to fetch an article with given artID
 //GET /articles/{articleID}
 func (c *Controller) GetArticleByIDHandler(w http.ResponseWriter, r *http.Request) {

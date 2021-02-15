@@ -24,7 +24,8 @@ func NewServer(d storage.Storage) *Server {
 func (s *Server) GetArticles() ([]models.Article, error) {
 	articles, err := s.db.GetAllArticles()
 	if err != nil {
-
+		log.ErrorLog("Error fetching all articles from table", err)
+		return ([]models.Article{}), err
 	}
 	return articles, nil
 }
@@ -65,6 +66,7 @@ func (s *Server) GetArticlesByIDs(ids []int) ([]models.Article, error) {
 				ch = errc
 			}
 			select {
+			//Pass error channel
 			case ch <- err:
 				return
 			case <-quit:
@@ -78,6 +80,7 @@ func (s *Server) GetArticlesByIDs(ids []int) ([]models.Article, error) {
 	for {
 		select {
 		case err := <-errc:
+			//If err channel recieved any errors then close the quit channel
 			close(quit)
 			return blank, err
 		case <-done:

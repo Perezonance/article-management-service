@@ -36,9 +36,6 @@ func main() {
 
 	r.HandleFunc("/articles/{userID}", c.GetArticleByUserIDHandler).Methods(http.MethodGet)
 
-	//GET /articles?id=id1, id2, idn...
-	// r.HandleFunc("/articles", c.GetMultArticleByIDHandler).Methods(http.MethodGet).Queries("ids")
-
 	l.InfoLog("Server Initialized")
 	//Graceful shut down procedure...
 	srv := &http.Server{
